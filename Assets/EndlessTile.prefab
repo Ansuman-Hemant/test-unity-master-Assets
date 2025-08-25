@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4579713901852647593}
   - component: {fileID: 7057594637726999889}
   m_Layer: 5
-  m_Name: Tile
+  m_Name: EndlessTile
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

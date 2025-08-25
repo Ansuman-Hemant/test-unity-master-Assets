@@ -9,8 +9,8 @@ public class LevelTile : MonoBehaviour, IPointerEnterHandler, IPointerDownHandle
     [SerializeField] TMP_Text letterText;
     [SerializeField] Image tileImage;
     [Header("Overlay Sprites (Children)")]
-    [SerializeField] GameObject bonusSprite;  // Assign in inspector
-    [SerializeField] GameObject blockedSprite;  // Assign in inspector
+    [SerializeField] GameObject bonusSprite;
+    [SerializeField] GameObject blockedSprite;
 
     public string Letter => letterText != null ? letterText.text : "";
     public Vector2Int GridPosition { get; private set; }
@@ -18,19 +18,23 @@ public class LevelTile : MonoBehaviour, IPointerEnterHandler, IPointerDownHandle
     public bool IsBlocked { get; private set; }
     public bool BonusUsed { get; private set; }
 
-    private LevelWordSelector wordSelector;
+    private WordSelector wordSelector;
     private Coroutine blinkCoroutine;
+    private Color normalColor = Color.white;
+    private Color selectedColor = Color.green;
 
     void Start()
     {
-        wordSelector = FindObjectOfType<LevelWordSelector>();
+        wordSelector = WordSelector.Instance;
         if (tileImage == null) tileImage = GetComponent<Image>();
-        if (tileImage != null) tileImage.raycastTarget = true;
+        if (tileImage != null)
+        {
+            tileImage.raycastTarget = true;
+            normalColor = tileImage.color; // Store original color
+        }
         if (letterText != null) letterText.raycastTarget = false;
-
         if (bonusSprite != null) bonusSprite.SetActive(false);
         if (blockedSprite != null) blockedSprite.SetActive(false);
-
         BonusUsed = false;
         UpdateVisual();
     }
@@ -59,7 +63,6 @@ public class LevelTile : MonoBehaviour, IPointerEnterHandler, IPointerDownHandle
         UpdateVisual();
     }
 
-    // Call this when the bonus letter is actually used in a word
     public void ConsumeBonus()
     {
         if (IsBonus && !BonusUsed)
@@ -73,7 +76,7 @@ public class LevelTile : MonoBehaviour, IPointerEnterHandler, IPointerDownHandle
     void UpdateVisual()
     {
         if (tileImage != null)
-            tileImage.color = Color.yellow;
+            tileImage.color = normalColor; // Use stored normal color instead of yellow
 
         if (bonusSprite != null)
         {
@@ -146,12 +149,24 @@ public class LevelTile : MonoBehaviour, IPointerEnterHandler, IPointerDownHandle
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        if (wordSelector != null) wordSelector.StartSelection(this);
+        Debug.Log($"LevelTile '{Letter}' at position {GridPosition} clicked!");
+        if (wordSelector != null)
+            wordSelector.StartSelection(this);
+        else
+            Debug.LogError("WordSelector is null in LevelTile!");
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (wordSelector != null) wordSelector.AddTile(this);
+        if (wordSelector != null)
+            wordSelector.AddTile(this);
+    }
+
+    // Highlight tile when selected/deselected
+    public void Highlight(bool selected)
+    {
+        if (tileImage != null)
+            tileImage.color = selected ? selectedColor : normalColor;
     }
 
     void OnDestroy()

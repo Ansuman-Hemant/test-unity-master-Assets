@@ -8,34 +8,30 @@ public class Tile : MonoBehaviour, IPointerEnterHandler, IPointerDownHandler
     [SerializeField] TMP_Text letterText;
     [SerializeField] Image tileImage;
 
-    public string Letter => letterText.text;
-
-    // Grid coordinates for adjacency check
+    public string Letter => letterText != null ? letterText.text : "";
     public Vector2Int GridPosition { get; private set; }
 
     private WordSelector wordSelector;
+    private Color normalColor = Color.white;
+    private Color selectedColor = Color.green;
 
     void Start()
     {
-        wordSelector = FindObjectOfType<WordSelector>();
+        wordSelector = WordSelector.Instance;
 
-        // Ensure the tile has proper raycast blocking
         if (tileImage == null)
             tileImage = GetComponent<Image>();
 
         if (tileImage != null)
         {
             tileImage.raycastTarget = true;
+            normalColor = tileImage.color;
         }
 
-        // Make sure the text doesn't interfere with raycasts
         if (letterText != null)
-        {
             letterText.raycastTarget = false;
-        }
     }
 
-    // Called from GridManager when spawning
     public void SetGridPosition(int row, int col)
     {
         GridPosition = new Vector2Int(row, col);
@@ -43,13 +39,22 @@ public class Tile : MonoBehaviour, IPointerEnterHandler, IPointerDownHandler
 
     public void OnPointerDown(PointerEventData eventData)
     {
+        Debug.Log($"Tile {Letter} at {GridPosition} clicked.");
         if (wordSelector != null)
             wordSelector.StartSelection(this);
+        else
+            Debug.LogError("WordSelector is null in Tile.");
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
         if (wordSelector != null)
             wordSelector.AddTile(this);
+    }
+
+    public void Highlight(bool selected)
+    {
+        if (tileImage != null)
+            tileImage.color = selected ? selectedColor : normalColor;
     }
 }

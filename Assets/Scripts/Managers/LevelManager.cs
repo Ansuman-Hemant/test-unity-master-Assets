@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using TMPro;
+using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.SceneManagement; // ✨ Add this for scene management
 
 public class LevelManager : MonoBehaviour
 {
@@ -12,10 +12,7 @@ public class LevelManager : MonoBehaviour
     [SerializeField] TextMeshProUGUI objectiveText;
     [SerializeField] TextMeshProUGUI timerText;
 
-    [Header("Scene Management")] // ✨ New section
-    [SerializeField] string sceneToLoadAfterCompletion; // ✨ Assign in inspector
-
-    public int currentLevel = 1; // 1-based for display
+    public int currentLevel = 1;
     private LevelDataModel currentGridData;
     private LevelDataRoot allGrids;
 
@@ -30,13 +27,13 @@ public class LevelManager : MonoBehaviour
     private int initialBlockedTiles = 0;
     private int currentBlockedTiles = 0;
 
-    private LevelGridManager gridManager;
-    private LevelWordSelector wordSelector;
+    private GridManager gridManager;
+    private WordSelector wordSelector;
 
     void Start()
     {
-        gridManager = FindObjectOfType<LevelGridManager>();
-        wordSelector = FindObjectOfType<LevelWordSelector>();
+        gridManager = GridManager.Instance;
+        wordSelector = WordSelector.Instance;
         LoadGridData();
         SetupLevel(currentLevel);
     }
@@ -45,11 +42,11 @@ public class LevelManager : MonoBehaviour
     {
         if (levelDataFile == null)
         {
-            Debug.LogError("Level data file not assigned!");
+            Debug.LogError("Level data file not assigned.");
             return;
         }
         allGrids = JsonUtility.FromJson<LevelDataRoot>(levelDataFile.text);
-        Debug.Log($"Loaded {allGrids.data.Length} grid layouts from JSON");
+        Debug.Log($"Loaded {allGrids.data.Length} grid layouts from JSON.");
     }
 
     public void SetupLevel(int levelNum)
@@ -73,16 +70,16 @@ public class LevelManager : MonoBehaviour
         timerActive = timeLimit > 0;
 
         if (wordSelector != null)
-            wordSelector.ResetScore();
+            ScoreManager.Instance.ResetScore();
 
         if (gridManager != null)
             gridManager.LoadLevel(levelNum - 1);
 
         UpdateUI();
-        Debug.Log($"🎯 Level {levelNum} Setup Complete!");
+        Debug.Log($"Level {levelNum} setup complete.");
 
         if (currentLevel == 5)
-            Debug.Log($"🔒 Blocked tiles to unlock: {initialBlockedTiles}");
+            Debug.Log($"Blocked tiles to unlock: {initialBlockedTiles}");
     }
 
     void CountBlockedTiles()
@@ -99,14 +96,14 @@ public class LevelManager : MonoBehaviour
                     currentBlockedTiles++;
                 }
             }
-            Debug.Log($"Found {initialBlockedTiles} blocked tiles in level data");
+            Debug.Log($"Found {initialBlockedTiles} blocked tiles in level data.");
         }
     }
 
     public void OnTileUnblocked()
     {
         currentBlockedTiles--;
-        Debug.Log($"🔓 Tile unblocked! Remaining: {currentBlockedTiles}/{initialBlockedTiles}");
+        Debug.Log($"Tile unblocked, {currentBlockedTiles}/{initialBlockedTiles} remaining.");
         if (currentLevel == 5)
         {
             UpdateUI();
@@ -118,38 +115,18 @@ public class LevelManager : MonoBehaviour
     {
         switch (levelNum)
         {
-            case 1:
-                requiredWords = 5;
-                requiredBonus = 0;
-                timeLimit = 0;
-                break;
-            case 2:
-                requiredWords = 7;
-                requiredBonus = 0;
-                timeLimit = 45;
-                break;
-            case 3:
-                requiredWords = 10;
-                requiredBonus = 0;
-                timeLimit = 120;
-                break;
-            case 4:
-                requiredWords = 1;
-                requiredBonus = 4; // Must use 4 bonus letters
-                timeLimit = 0;
-                break;
-            case 5:
-                requiredWords = 1;
-                requiredBonus = 4; // Must use 4 bonus letters + unlock blocked tiles
-                timeLimit = 0;
-                break;
+            case 1: requiredWords = 5; requiredBonus = 0; timeLimit = 0; break;
+            case 2: requiredWords = 7; requiredBonus = 0; timeLimit = 45; break;
+            case 3: requiredWords = 10; requiredBonus = 0; timeLimit = 120; break;
+            case 4: requiredWords = 1; requiredBonus = 4; timeLimit = 0; break;
+            case 5: requiredWords = 1; requiredBonus = 4; timeLimit = 0; break;
             default:
                 requiredWords = 5 + (levelNum - 1) * 2;
                 requiredBonus = 0;
                 timeLimit = Mathf.Max(30, 60 - (levelNum - 1) * 5);
                 break;
         }
-        Debug.Log($"Level {levelNum} Rules: {requiredWords} words, {requiredBonus} bonus, {timeLimit}s");
+        Debug.Log($"Level {levelNum} rules: {requiredWords} words, {requiredBonus} bonus, {timeLimit}s.");
     }
 
     void Update()
@@ -159,7 +136,7 @@ public class LevelManager : MonoBehaviour
             timer -= Time.deltaTime;
             UpdateTimerUI();
             if (timer <= 0)
-                LevelFailed("⏰ Time's up!");
+                LevelFailed("Time's up.");
         }
     }
 
@@ -167,7 +144,7 @@ public class LevelManager : MonoBehaviour
     {
         wordsMade++;
         bonusUsed += bonusInWord;
-        Debug.Log($"✅ Word '{word}' made! Progress: {wordsMade}/{requiredWords} words, Bonus: {bonusUsed}/{requiredBonus}");
+        Debug.Log($"Word '{word}' made. Progress: {wordsMade}/{requiredWords} words, Bonus: {bonusUsed}/{requiredBonus}");
         UpdateUI();
         CheckLevelComplete();
     }
@@ -179,11 +156,11 @@ public class LevelManager : MonoBehaviour
         bool timeOk = !timerActive || timer > 0;
         bool blockedTilesCleared = currentLevel != 5 || currentBlockedTiles == 0;
 
-        Debug.Log($"🎯 Level {currentLevel} Progress Check:");
-        Debug.Log($" Words: {wordsMade}/{requiredWords} ✓{wordGoalMet}");
-        Debug.Log($" Bonus: {bonusUsed}/{requiredBonus} ✓{bonusGoalMet}");
-        Debug.Log($" Time: ✓{timeOk}");
-        Debug.Log($" Blocked tiles: {currentBlockedTiles} remaining ✓{blockedTilesCleared}");
+        Debug.Log($"Level {currentLevel} progress check:");
+        Debug.Log($"Words: {wordsMade}/{requiredWords} {(wordGoalMet ? "✓" : "")}");
+        Debug.Log($"Bonus: {bonusUsed}/{requiredBonus} {(bonusGoalMet ? "✓" : "")}");
+        Debug.Log($"Time: {(timeOk ? "✓" : "")}");
+        Debug.Log($"Blocked tiles: {currentBlockedTiles} {(blockedTilesCleared ? "✓" : "")}");
 
         if (wordGoalMet && bonusGoalMet && timeOk && blockedTilesCleared)
             LevelComplete();
@@ -192,51 +169,31 @@ public class LevelManager : MonoBehaviour
     void LevelComplete()
     {
         timerActive = false;
-        Debug.Log($"🎉 Level {currentLevel} Complete!");
-        Invoke(nameof(LoadNextLevel), 2f);
+        Debug.Log($"Level {currentLevel} complete.");
+        StartCoroutine(AdvanceToNextLevel());
     }
 
-    void LoadNextLevel() // ✨ Modified method
+    IEnumerator AdvanceToNextLevel()
     {
-        int nextLevel = currentLevel + 1;
-        if (nextLevel <= allGrids.data.Length)
-        {
-            Debug.Log($"Loading Level {nextLevel}...");
-            SetupLevel(nextLevel);
-        }
-        else
-        {
-            Debug.Log("🏆 All levels completed! Great job!");
-
-            // ✨ Load completion scene after 2 seconds
-            if (!string.IsNullOrEmpty(sceneToLoadAfterCompletion))
-            {
-                Debug.Log($"Loading completion scene: {sceneToLoadAfterCompletion}");
-                Invoke(nameof(LoadCompletionScene), 2f);
-            }
-            else
-            {
-                Debug.LogWarning("No completion scene assigned in inspector!");
-            }
-        }
-    }
-
-    // ✨ New method to load completion scene
-    void LoadCompletionScene()
-    {
-        SceneManager.LoadScene(sceneToLoadAfterCompletion);
+        yield return new WaitForSeconds(2f);
+        NextLevel();
     }
 
     void LevelFailed(string reason)
     {
         timerActive = false;
-        Debug.Log($"❌ Level {currentLevel} Failed: {reason}");
-        Invoke(nameof(RestartLevel), 2f);
+        Debug.Log($"Level {currentLevel} failed: {reason}");
+        StartCoroutine(RestartLevelDelayed());
+    }
+
+    IEnumerator RestartLevelDelayed()
+    {
+        yield return new WaitForSeconds(2f);
+        RestartLevel();
     }
 
     void RestartLevel()
     {
-        Debug.Log($"🔄 Restarting Level {currentLevel}");
         SetupLevel(currentLevel);
     }
 
@@ -291,13 +248,29 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    // For developer/test advancement
     public void NextLevel()
     {
-        LoadNextLevel();
+        int nextLevel = currentLevel + 1;
+        if (nextLevel <= allGrids.data.Length)
+        {
+            Debug.Log($"Loading level {nextLevel}...");
+            SetupLevel(nextLevel);
+        }
+        else
+        {
+            Debug.Log("All levels completed.");
+            LevelsModeState levelsModeState = FindObjectOfType<LevelsModeState>();
+            if (levelsModeState != null)
+            {
+                levelsModeState.OnAllLevelsCleared();
+            }
+            else
+            {
+                UIStateManager.Instance.SwitchState(UIStateManager.Instance.mainMenuState);
+            }
+        }
     }
 
-    // Level data structure classes
     [System.Serializable] public class GridTileData { public int tileType; public string letter; }
     [System.Serializable] public class GridSize { public int x, y; }
     [System.Serializable]
